@@ -1,0 +1,26 @@
+{
+  "name": "jquery.marksOnImage",
+  "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/warkhosh/marksOnImage.git"
+  },
+  "authors": [
+    "Konstantin <ekv.programmer@gmail.com>"
+  ],
+  "description": "Задавать на схеме игры игровые позиции",
+  "main": "src/jquery.marksOnImage.js",
+  "keywords": [
+    "jquery",
+    "mark"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components"
+  ],
+  "dependencies": {
+    "jquery": ">= 2.1.4"
+  }
+}
