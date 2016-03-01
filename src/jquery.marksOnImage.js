@@ -2,7 +2,9 @@
     $.fn.marksOnImage = function (options) {
         var option = $.extend({
             cords: [],
+            newCords: [],
             index: null,
+            method: 'edit',
             dotName: 'dot',
             readOnly: true,
             idCoordinateX: null,
@@ -27,11 +29,39 @@
             inputCoordinateX: null
         };
 
-        // Создание элемента отметки
-        var mark = function (id, className) {
+        /**
+         * Создание элемента метки
+         * @param id
+         * @param className
+         * @param index
+         * @returns {*|HTMLElement}
+         */
+        var mark = function (id, className, index) {
             className = className || '';
+            index = Number(index) >= 0 ? Number(index) : null;
+
             var elem = $('<span class="dot ' + className + '"><i></span>');
+
+            if (index != null) {
+                elem.data('index', index);
+            }
             if (id) elem.attr('id', id);
+
+            return elem;
+        };
+
+        /**
+         * Создание элемента метки с указанием названия
+         *
+         * @param id
+         * @param className
+         * @param index
+         * @returns {*|HTMLElement}
+         */
+        var markChange = function (id, className, index, text) {
+            var elem = mark(id, className, index);
+            elem.on('click', activeMark).find('i').replaceWith('<b>'+text+'</b>');
+            readOnly(false);
             return elem;
         };
 
@@ -48,6 +78,15 @@
         };
 
         var cancelClick = function (e) {
+            e.preventDefault();
+            return false;
+        };
+
+        var activeMark = function (e) {
+            if (option.method == 'changeAllCoordinates') {
+                elem.modal.find('.dot.select').attr('class', 'dot fa fa-male');
+                option.index = $(this).attr('class', 'dot fa fa-street-view select').data('index');
+            }
             e.preventDefault();
             return false;
         };
@@ -72,8 +111,6 @@
         var changeCoordinate = function () {
             coordinates(elem.inputCoordinateY.val(), elem.inputCoordinateX.val());
 
-            //coordinates(option.top, option.left);
-
             elem.inputCoordinateY.val(option.coordinateY);
             elem.inputCoordinateX.val(option.coordinateX);
 
@@ -87,7 +124,7 @@
          * @param {String|Number} y
          * @param {String|Number} x
          */
-        var coordinates = function(y, x) {
+        var coordinates = function (y, x) {
             y = Number(y);
             x = Number(x);
 
@@ -129,7 +166,11 @@
             elem.node.find('.dot.select').remove();
 
             var id = option.dotName + option.index;
-            var dot = mark(id, 'fa fa-street-view select'); // новая метка
+            if (option.method == 'changeAllCoordinates') {
+                //var dot = markChange(id, 'fa fa-street-view select', option.index, 'ddsdsffds'); // новая метка
+            } else {
+                var dot = mark(id, 'fa fa-street-view select', option.index); // новая метка
+            }
 
             dot.css({'top': option.top, 'left': option.left});
             dot.attr('class', 'dot fa fa-street-view select');
@@ -141,6 +182,14 @@
 
             dot.on('click', cancelClick);     // Клик мышкой по метке
             dot.on('click', 'i', removeMark); // Клик по елементу удаления метки
+
+            if (option.method == 'changeAllCoordinates') {
+                dot.on('click', activeMark);
+            }
+        };
+
+        var moveMark = function (e) {
+            console.log(e);
         };
 
         /**
@@ -151,7 +200,7 @@
             option.modalWidth = elem.modal.children().width();
 
             // Центровка картинки в модальном окне:
-            if ((option.maxCoordinateX + (position.left*2)) < option.modalWidth) {
+            if ((option.maxCoordinateX + (position.left * 2)) < option.modalWidth) {
                 var left = (((option.modalWidth - option.maxCoordinateX) + position.left) / 2);
                 elem.node.css('margin-left', left);
             } else {
@@ -159,11 +208,162 @@
             }
         };
 
-        var start = function () {
+        // Вызывается до запуска основного метода
+        var beforeMethod = function () {
+            // Записываем размеры картинки для предотвращения указание координат за их пределом
+            option.maxCoordinateX = elem.image.width;
+            option.maxCoordinateY = elem.image.height;
+
+            imageOffset();
+
+            // показываем картинку и записываем ключь текущей метки
+            elem.node.find('img').data('index', option.index);
+        };
+
+        // Вызывается после запуска основного метода
+        var afterMethod = function () {
+            elem.node.css('visibility', 'visible');
+            $(window).resize(imageOffset); // Триггер на смещение картинки в модальном окне если она меньше его
+        };
+
+        /**
+         * @param {Array} list
+         * @returns {Array}
+         */
+        var getSchemes = function (list) {
+            var data = {};
+
+            for (var i = 0; i < list.length; i++) {
+                var top = 0, left = 0;
+                option.newCords[i] = null;
+
+                if (option.cords[i].on_scheme) {
+                    var scheme = option.cords[i].on_scheme;
+
+                    if (option.cords[i].not_active) continue;
+
+                    if (scheme == null) scheme = '';
+                    // Если придёт что-то другое то мы его превратим в строчку
+                    scheme = scheme.toString();
+
+                    // если без разделителя
+                    if (scheme.indexOf(',') < 1) {
+                        scheme = '';
+                    }
+
+                    var cord = scheme.split(',');
+
+                    if (cord.length >= 1) {
+                        var y = Number(cord[0]);
+                        top = isNaN(y) ? 0 : y;
+                    }
+
+                    if (cord.length == 2) {
+                        var x = Number(cord[1]);
+                        left = isNaN(x) ? 0 : x;
+                    }
+
+                    coordinates(top, left);
+
+                    data[i] = {
+                        top: option.top,
+                        left: option.left,
+                        coordinateY: option.coordinateY,
+                        coordinateX: option.coordinateX,
+                        name: list[i].name && list[i].name.ru ? list[i].name.ru : '',
+                        not_active: list[i].not_active && list[i].not_active === true ? true : false
+                    };
+                }
+            }
+
+            return data;
+        };
+
+        // Метод Edit
+        var edit = function () {
+            beforeMethod();
+
+            var coordinates = getSchemes(option.cords);
+
+            // Перебираем все метки для их отрисовывания
+            $.each(coordinates, function (index, value) {
+                var id = option.dotName + index;
+                var dot = mark(id, option.index == index ? 'fa fa-street-view select' : 'fa fa-male', index);
+
+                dot.css('top', value.top);
+                dot.css('left', value.left);
+
+                if (option.index == index) {
+                    elem.inputCoordinateY.val(value.coordinateY);
+                    elem.inputCoordinateX.val(value.coordinateX);
+                    if (!value.not_active) readOnly(false);
+                } else {
+                    dot.css('opacity', '0.6');
+                }
+
+                dot.on('click', cancelClick);     // Клик мышкой по метке
+                dot.on('click', 'i', removeMark); // Клик по елементу удаления метки
+
+                if (!value.not_active) elem.node.append(dot);
+
+                // Записываем координаты
+                option.newCords[index] = value.coordinateY + ',' + value.coordinateX;
+            });
+
+            elem.node.click(createMark);  // Событие размещения метки по клику на картинке
+
+            afterMethod();
+        };
+
+        // Метод ChangeAllCoordinates
+        var changeAllCoordinates = function () {
+            beforeMethod();
+
+            var coordinates = getSchemes(option.cords);
+
+            // Перебираем все метки для их отрисовывания
+            $.each(coordinates, function (index, value) {
+                var id = option.dotName + index;
+                var dot = markChange(id, option.index == index ? 'fa fa-street-view select' : 'fa fa-male', index, value.name);
+
+                dot.css('top', value.top);
+                dot.css('left', value.left);
+
+                if (option.index == index) {
+                    elem.inputCoordinateY.val(value.coordinateY);
+                    elem.inputCoordinateX.val(value.coordinateX);
+                    if (!value.not_active) readOnly(false);
+                } else {
+                    dot.css('opacity', '0.6');
+                }
+
+                dot.on('click', activeMark);       // Клик мышкой по метке
+                dot.on('click', 'i', cancelClick); // Клик по елементу удаления метки
+
+                if (!value.not_active) elem.node.append(dot);
+
+                // Записываем координаты
+                option.newCords[index] = value.coordinateY + ',' + value.coordinateX;
+            });
+
+            elem.node.click(moveMark);  // Событие размещения метки по клику на картинке
+
+            afterMethod();
+        };
+
+        var app = function () {
             elem.node = $('#schemeMap');
             elem.modal = $('#schemeModal');
             elem.inputCoordinateY = $(option.idCoordinateY);
             elem.inputCoordinateX = $(option.idCoordinateX);
+
+            var close = elem.modal.find('.close');
+
+            if (option.method == 'changeAllCoordinates') {
+                close.hide();
+            } else {
+                close.show();
+            }
 
             // Заполняем поля координат значениями по умолчанию
             elem.inputCoordinateY.val(null).change(changeCoordinate);
@@ -172,84 +372,22 @@
             // Удаляем все точки для отрисовки новых
             elem.node.find('.dot').remove();
 
+            // Выясняю размеры иконки
             markSize();
 
             elem.image = new Image();
+
+            // Запускаем сценарий после загрузки картинки
+            if (option.method == 'changeAllCoordinates') {
+                elem.image.onload = changeAllCoordinates;
+            } else {
+                elem.image.onload = edit;
+            }
+
             elem.image.src = elem.node.find('.scheme').attr('src');
-
-            // Запускаем сценарий после загрузки картинки:
-            elem.image.onload = function () {
-                // Записываем размеры картинки для предотвращения указание координат за их пределом
-                option.maxCoordinateX = elem.image.width;
-                option.maxCoordinateY = elem.image.height;
-
-                imageOffset();
-
-                // показываем картинку и записываем ключь текущей метки
-                elem.node.find('img').data('index', option.index);
-
-                // Перебираем все метки для их отрисовывания
-                for (var i = 0; i < option.cords.length; i++) {
-                    var top = 0, left = 0;
-                    var scheme = option.cords[i].on_scheme;
-
-                    if (!option.cords[i].on_scheme) scheme = null;
-                    if (scheme === null) scheme = '';
-
-                    // А если придёт что-то другое:
-                    scheme = scheme.toString();
-
-                    // если без разделителя
-                    if (scheme.indexOf(',') < 1) {
-                        scheme = '';
-                    }
-
-                    if (scheme != '') {
-                        var id = option.dotName + i;
-                        var dot = mark(id, option.index == i ? 'fa fa-street-view select' : 'fa fa-male');
-                        var cord = scheme.split(',');
-
-                        if (cord.length >= 1) {
-                            var y = Number(cord[0]);
-                            top = isNaN(y) ? 0 : y;
-                        }
-
-                        if (cord.length == 2) {
-                            var x = Number(cord[1]);
-                            left = isNaN(x) ? 0 : x;
-                        }
-
-                        coordinates(top, left);
-
-                        dot.css('top', option.top);
-                        dot.css('left', option.left);
-
-                        if (option.index == i) {
-                            elem.inputCoordinateY.val(option.coordinateY);
-                            elem.inputCoordinateX.val(option.coordinateX);
-                            if (!option.cords[i].not_active) readOnly(false);
-                        } else {
-                            dot.css('opacity', '0.6');
-                        }
-
-                        dot.on('click', cancelClick);     // Клик мышкой по метке
-                        dot.on('click', 'i', removeMark); // Клик по елементу удаления метки
-
-                        if (!option.cords[i].not_active) elem.node.append(dot);
-                    } else {
-                        if (option.index == i) readOnly(false);
-                    }
-                }
-
-                elem.node.css('visibility', 'visible');
-
-                elem.node.click(createMark);  // Событие размещения метки по клику на картинке
-                $(window).resize(imageOffset); // Триггер на смещение картинки в модальном окне если она меньше его
-            };
         };
 
-        return this.each(start);
+        return this.each(app);
     };
 
 })(jQuery);
-//# sourceMappingURL=marksOnImage.js.map
