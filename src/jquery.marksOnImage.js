@@ -18,7 +18,11 @@
             coordinateX: null, // координаты для позиционирования метки
             coordinateY: null, // координаты для позиционирования метки
             left: null, // координаты для корретного размщения метки с учётом сдвига
-            top: null   // координаты для корретного размщения метки с учётом сдвига
+            top: null,  // координаты для корретного размщения метки с учётом сдвига
+            classNameIconHover: 'ois-player-hover',
+            classNameIcon: 'ois-player',
+            classIcon: 'dot'
+
         }, options);
 
         var elem = {
@@ -37,7 +41,7 @@
         };
 
         var saveData = function () {
-            elem.img.data({coordinates: option.coordinateList, index:option.index, method: option.method});
+            elem.img.data({coordinates: option.coordinateList, index: option.index, method: option.method});
         };
 
         /**
@@ -92,8 +96,11 @@
         };
 
         var activeMark = function (e) {
-            elem.node.find('.dot').attr('class', 'dot fa fa-male').css('opacity', '0.6');
-            option.index = $(this).attr('class', 'dot fa fa-street-view select').css('opacity', 1).data('index');
+            elem.node.find('.dot')
+                .attr('class', option.classIcon + ' ' + option.classNameIcon).css('opacity', '0.6');
+            option.index = $(this)
+                .attr('class', option.classIcon + ' ' + option.classNameIconHover + ' select')
+                .css('opacity', 1).data('index');
             readOnly(false);
 
             elem.inputCoordinateY.val(option.coordinateList[option.index][0]);
@@ -198,13 +205,13 @@
             coordinates(e.offsetY, e.offsetX);
 
             // Убираем (если есть) метку перед отрисовкой новой
-            elem.node.find('.dot.select').remove();
+            elem.node.find('.' + option.classIcon + '.select').remove();
 
             var id = option.dotName + option.index;
-            var dot = mark(id, 'fa fa-street-view select', option.index); // новая метка
+            var dot = mark(id, option.classIcon + ' ' + option.classNameIconHover + ' select', option.index); // новая метка
 
             dot.css({'top': option.top, 'left': option.left});
-            dot.attr('class', 'dot fa fa-street-view select');
+            dot.attr('class', option.classIcon + ' ' + option.classNameIconHover + ' select');
 
             elem.node.append(dot);
 
@@ -314,7 +321,9 @@
             // Перебираем все метки для их отрисовывания
             $.each(coordinates, function (index, value) {
                 var id = option.dotName + index;
-                var dot = mark(id, option.index == index ? 'fa fa-street-view select' : 'fa fa-male', index);
+                var dot = mark(id, option.index == index
+                    ? option.classIcon + ' ' + option.classNameIconHover + ' select'
+                    : option.classIcon + ' ' + option.classNameIcon, index);
 
                 dot.css('top', value.top);
                 dot.css('left', value.left);
@@ -352,7 +361,9 @@
             // Перебираем все метки для их отрисовывания
             $.each(coordinates, function (index, value) {
                 var id = option.dotName + index;
-                var dot = markName(id, option.index == index ? 'fa fa-street-view select' : 'fa fa-male', index, value.name);
+                var dot = markName(id, (option.index == index
+                    ?  option.classIcon + ' ' + option.classNameIconHover + ' select'
+                    :  option.classIcon + ' ' + option.classNameIcon), index, value.name);
 
                 dot.css('top', value.top);
                 dot.css('left', value.left);
