@@ -38,7 +38,6 @@
 
         var saveData = function () {
             elem.img.data({coordinates: option.coordinateList, index:option.index, method: option.method});
-            console.log( elem.img.data('coordinates') );
         };
 
         /**
@@ -242,6 +241,8 @@
 
             // показываем картинку и записываем ключь текущей метки
             elem.node.find('img').data('index', option.index);
+
+            readOnly(true);
         };
 
         // Вызывается после запуска основного метода
