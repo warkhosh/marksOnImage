@@ -45,9 +45,9 @@
 
         /**
          * Создание элемента метки
-         * @param id
-         * @param className
-         * @param index
+         * @param {String} id
+         * @param {String} className
+         * @param {Number} index
          * @returns {*|HTMLElement}
          */
         var mark = function (id, className, index) {
@@ -66,9 +66,10 @@
 
         /**
          * Создание элемента метки с указанием названия
-         * @param id
-         * @param className
-         * @param index
+         * @param {String} id
+         * @param {String} className
+         * @param {Number} index
+         * @param {String} text
          * @returns {*|HTMLElement}
          */
         var markName = function (id, className, index, text) {
@@ -158,7 +159,6 @@
 
             // Стираем координаты и все значения если нет активной метки
             if (dot.length == 0) {
-                console.log(dot.length);
                 clearCurrentCoordinate();
                 saveData();
                 return;
@@ -182,9 +182,10 @@
          * Результат вычислений записывается в объект: option
          * @param {String|Number} y
          * @param {String|Number} x
+         * @param {String|Boolean} saveCoordinate
          */
         var coordinates = function (y, x, saveCoordinate) {
-            saveCoordinate = saveCoordinate || true;
+            saveCoordinate = (typeof saveCoordinate == 'undefined' || saveCoordinate === true);
             y = Number(y);
             x = Number(x);
 
@@ -192,7 +193,7 @@
             var markWidth = option.markWidth;
             var markHeight = option.markHeight;
             var mark2Width = (markWidth / 2);
-            var mark2Height = (markHeight / 2);
+            //var mark2Height = (markHeight / 2);
 
             // Смещаем кординаты для установки метки по центру клика
             var top = (y - markHeight);
@@ -263,29 +264,11 @@
             saveData();
         };
 
-        /**
-         * Центрирование схемы в модальном окне
-         */
-        //var imageOffset = function () {
-        //    var position = elem.modal.find('.modal-body > div').position();
-        //    option.modalWidth = elem.modal.children().width();
-        //
-        //    // Центровка картинки в модальном окне:
-        //    if ((option.maxCoordinateX + (position.left * 2)) < option.modalWidth) {
-        //        var left = (((option.modalWidth - option.maxCoordinateX) + position.left) / 2);
-        //        elem.node.css('margin-left', left);
-        //    } else {
-        //        elem.node.removeAttr('style');
-        //    }
-        //};
-
         // Вызывается до запуска основного метода
         var beforeMethod = function () {
             // Записываем размеры картинки для предотвращения указание координат за их пределом
             option.maxCoordinateX = elem.image.width;
             option.maxCoordinateY = elem.image.height;
-
-            //imageOffset();
 
             // показываем картинку и записываем ключь текущей метки
             elem.node.find('img').data('index', option.index);
@@ -296,7 +279,6 @@
         // Вызывается после запуска основного метода
         var afterMethod = function () {
             elem.node.css('visibility', 'visible');
-            //$(window).resize(imageOffset); // Триггер на смещение картинки в модальном окне если она меньше его
         };
 
         /**
@@ -357,6 +339,9 @@
         var edit = function () {
             beforeMethod();
 
+            clearCurrentCoordinate();
+            readOnly(false);
+
             var coordinates = getSchemes(option.cords);
 
             // Перебираем все метки для их отрисовывания
@@ -382,11 +367,11 @@
 
                 elem.node.append(dot);
 
-                // Записываем координаты
-                option.coordinateList[index] = [value.coordinateY, value.coordinateX];
-                saveData();
+                // Зписываем координаты текущей точки из списка
+                option.coordinateList[index] = [option.coordinateY, option.coordinateX];
             });
 
+            saveData();
             afterMethod();
 
             // Событие размещения метки по клику на картинке
@@ -399,6 +384,7 @@
             beforeMethod();
 
             var coordinates = getSchemes(option.cords);
+            readOnly(true);
 
             // Перебираем все метки для их отрисовывания
             $.each(coordinates, function (index, value) {
@@ -421,11 +407,11 @@
 
                 elem.node.append(dot);
 
-                // Записываем координаты
+                // Зписываем координаты текущей точки из списка
                 option.coordinateList[index] = [value.coordinateY, value.coordinateX];
-                saveData();
             });
 
+            saveData();
             afterMethod();
 
             // Событие размещения метки по клику на картинке
@@ -442,11 +428,11 @@
 
             var close = elem.modal.find('.close');
 
-            if (option.method == 'changeAllCoordinates') {
-                close.hide();
-            } else {
-                close.show();
-            }
+            //if (option.method == 'changeAllCoordinates') {
+            //    close.hide();
+            //} else {
+            //    close.show();
+            //}
 
             // Заполняем поля координат значениями по умолчанию
             elem.inputCoordinateY.val(null).change(changeCoordinate);
