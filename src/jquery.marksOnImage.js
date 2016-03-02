@@ -5,7 +5,6 @@
             coordinateList: [],
             index: null,
             method: 'edit',
-            dotName: 'dot',
             selectScheme: '.scheme',
             readOnly: true,
             idCoordinateX: null,
@@ -55,7 +54,7 @@
             className = className || '';
             index = Number(index) >= 0 ? Number(index) : null;
 
-            var elem = $('<span class="dot ' + className + '"><i></span>');
+            var elem = $('<span class="' + option.classIcon + ' ' + className + '"><i></span>');
 
             if (index != null) {
                 elem.data('index', index);
@@ -96,7 +95,7 @@
         };
 
         var activeMark = function (e) {
-            elem.node.find('.dot')
+            elem.node.find('.' + option.classIcon)
                 .attr('class', option.classIcon + ' ' + option.classNameIcon).css('opacity', '0.6');
             option.index = $(this)
                 .attr('class', option.classIcon + ' ' + option.classNameIconHover + ' select')
@@ -121,7 +120,7 @@
 
             coordinates(e.offsetY, e.offsetX);
 
-            var dot = elem.node.find('.dot.select').css({'top': option.top, 'left': option.left});
+            var dot = elem.node.find('.' + option.classIcon + '.select').css({'top': option.top, 'left': option.left});
 
             elem.inputCoordinateY.val(option.coordinateY);
             elem.inputCoordinateX.val(option.coordinateX);
@@ -153,7 +152,7 @@
             elem.inputCoordinateX.val(option.coordinateX);
 
             // Меняем координаты метки
-            elem.node.find('.dot.select').css({'top': option.top, 'left': option.left});
+            elem.node.find('.' + option.classIcon + '.select').css({'top': option.top, 'left': option.left});
 
             // Сохраняем новые координаты
             option.coordinateList[option.index] = [option.coordinateY, option.coordinateX];
@@ -207,7 +206,7 @@
             // Убираем (если есть) метку перед отрисовкой новой
             elem.node.find('.' + option.classIcon + '.select').remove();
 
-            var id = option.dotName + option.index;
+            var id = option.classIcon + option.index;
             var dot = mark(id, option.classIcon + ' ' + option.classNameIconHover + ' select', option.index); // новая метка
 
             dot.css({'top': option.top, 'left': option.left});
@@ -320,7 +319,7 @@
 
             // Перебираем все метки для их отрисовывания
             $.each(coordinates, function (index, value) {
-                var id = option.dotName + index;
+                var id = option.classIcon + index;
                 var dot = mark(id, option.index == index
                     ? option.classIcon + ' ' + option.classNameIconHover + ' select'
                     : option.classIcon + ' ' + option.classNameIcon, index);
@@ -349,7 +348,8 @@
             afterMethod();
 
             // Событие размещения метки по клику на картинке
-            elem.node.click(createMark);
+            elem.node.off('click');
+            elem.node.on('click', createMark);
         };
 
         // Метод changeAllCoordinates
@@ -360,7 +360,7 @@
 
             // Перебираем все метки для их отрисовывания
             $.each(coordinates, function (index, value) {
-                var id = option.dotName + index;
+                var id = option.classIcon + index;
                 var dot = markName(id, (option.index == index
                     ?  option.classIcon + ' ' + option.classNameIconHover + ' select'
                     :  option.classIcon + ' ' + option.classNameIcon), index, value.name);
@@ -387,7 +387,8 @@
             afterMethod();
 
             // Событие размещения метки по клику на картинке
-            elem.node.click(moveMark);
+            elem.node.off('click');
+            elem.node.on('click', moveMark);
         };
 
         var app = function () {
@@ -410,7 +411,7 @@
             elem.inputCoordinateX.val(null).change(changeCoordinate);
 
             // Удаляем все точки для отрисовки новых
-            elem.node.find('.dot').remove();
+            elem.node.find('.' + option.classIcon).remove();
 
             // Выясняю размеры иконки
             markSize();
