@@ -368,7 +368,7 @@
                 elem.node.append(dot);
 
                 // Зписываем координаты текущей точки из списка
-                option.coordinateList[index] = [option.coordinateY, option.coordinateX];
+                option.coordinateList[index] = [value.coordinateY, value.coordinateX];
             });
 
             saveData();
