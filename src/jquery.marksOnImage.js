@@ -38,6 +38,7 @@
 
         var saveData = function () {
             elem.img.data({coordinates: option.coordinateList, index:option.index, method: option.method});
+            console.log( elem.img.data('coordinates') );
         };
 
         /**
@@ -102,6 +103,29 @@
 
             e.preventDefault();
             return false;
+        };
+
+        /**
+         * Перемещает метку по клику
+         * @param e
+         * @returns {boolean}
+         */
+        var moveMark = function (e) {
+            if (option.readOnly) return false;
+
+            coordinates(e.offsetY, e.offsetX);
+
+            var dot = elem.node.find('.dot.select').css({'top': option.top, 'left': option.left});
+
+            elem.inputCoordinateY.val(option.coordinateY);
+            elem.inputCoordinateX.val(option.coordinateX);
+
+            // Сохраняем новые координаты
+            option.coordinateList[option.index] = [option.coordinateY, option.coordinateX];
+
+            saveData();
+
+            dot.on('click', activeMark);     // Клик мышкой по метке
         };
 
         var removeMark = function (e) {
@@ -190,20 +214,6 @@
 
             dot.on('click', cancelClick);     // Клик мышкой по метке
             dot.on('click', 'i', removeMark); // Клик по елементу удаления метки
-        };
-
-        var moveMark = function (e) {
-            if (option.readOnly) return false;
-
-            coordinates(e.offsetY, e.offsetX);
-
-            var dot = elem.node.find('.dot.select');
-            dot.css({'top': option.top, 'left': option.left});
-
-            elem.inputCoordinateY.val(option.coordinateY);
-            elem.inputCoordinateX.val(option.coordinateX);
-
-            dot.on('click', activeMark);     // Клик мышкой по метке
         };
 
         /**
