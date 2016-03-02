@@ -2,7 +2,7 @@
     $.fn.marksOnImage = function (options) {
         var option = $.extend({
             cords: [],
-            newCords: [],
+            coordinateList: [],
             index: null,
             method: 'edit',
             dotName: 'dot',
@@ -29,6 +29,12 @@
             inputCoordinateX: null
         };
 
+        var readOnly = function (value) {
+            option.readOnly = value;
+            elem.inputCoordinateY.prop("readonly", value);
+            elem.inputCoordinateX.prop("readonly", value);
+        };
+
         /**
          * Создание элемента метки
          * @param id
@@ -52,16 +58,14 @@
 
         /**
          * Создание элемента метки с указанием названия
-         *
          * @param id
          * @param className
          * @param index
          * @returns {*|HTMLElement}
          */
-        var markChange = function (id, className, index, text) {
+        var markName = function (id, className, index, text) {
             var elem = mark(id, className, index);
-            elem.on('click', activeMark).find('i').replaceWith('<b>'+text+'</b>');
-            readOnly(false);
+            elem.find('i').replaceWith('<b>'+text+'</b>');
             return elem;
         };
 
@@ -83,18 +87,15 @@
         };
 
         var activeMark = function (e) {
-            if (option.method == 'changeAllCoordinates') {
-                elem.modal.find('.dot.select').attr('class', 'dot fa fa-male');
-                option.index = $(this).attr('class', 'dot fa fa-street-view select').data('index');
-            }
+            elem.node.find('.dot').attr('class', 'dot fa fa-male').css('opacity', '0.6');
+            option.index = $(this).attr('class', 'dot fa fa-street-view select').css('opacity', 1).data('index');
+            readOnly(false);
+
+            elem.inputCoordinateY.val(option.coordinateList[option.index][0]);
+            elem.inputCoordinateX.val(option.coordinateList[option.index][1]);
+
             e.preventDefault();
             return false;
-        };
-
-        var readOnly = function (value) {
-            option.readOnly = value;
-            elem.inputCoordinateY.prop("readonly", value);
-            elem.inputCoordinateX.prop("readonly", value);
         };
 
         var removeMark = function (e) {
@@ -111,11 +112,15 @@
         var changeCoordinate = function () {
             coordinates(elem.inputCoordinateY.val(), elem.inputCoordinateX.val());
 
+            // указываем новые координаты после всех проверок и коррекций
             elem.inputCoordinateY.val(option.coordinateY);
             elem.inputCoordinateX.val(option.coordinateX);
 
-            var dot = elem.node.find('.dot.select');
-            dot.css({'top': option.top, 'left': option.left});
+            // Меняем координаты метки
+            elem.node.find('.dot.select').css({'top': option.top, 'left': option.left});
+
+            // Сохраняем новые координаты
+            option.coordinateList[option.index] = [option.coordinateY, option.coordinateX];
         };
 
         /**
@@ -166,11 +171,7 @@
             elem.node.find('.dot.select').remove();
 
             var id = option.dotName + option.index;
-            if (option.method == 'changeAllCoordinates') {
-                //var dot = markChange(id, 'fa fa-street-view select', option.index, 'ddsdsffds'); // новая метка
-            } else {
-                var dot = mark(id, 'fa fa-street-view select', option.index); // новая метка
-            }
+            var dot = mark(id, 'fa fa-street-view select', option.index); // новая метка
 
             dot.css({'top': option.top, 'left': option.left});
             dot.attr('class', 'dot fa fa-street-view select');
@@ -182,14 +183,20 @@
 
             dot.on('click', cancelClick);     // Клик мышкой по метке
             dot.on('click', 'i', removeMark); // Клик по елементу удаления метки
-
-            if (option.method == 'changeAllCoordinates') {
-                dot.on('click', activeMark);
-            }
         };
 
         var moveMark = function (e) {
-            console.log(e);
+            if (option.readOnly) return false;
+
+            coordinates(e.offsetY, e.offsetX);
+
+            var dot = elem.node.find('.dot.select');
+            dot.css({'top': option.top, 'left': option.left});
+
+            elem.inputCoordinateY.val(option.coordinateY);
+            elem.inputCoordinateX.val(option.coordinateX);
+
+            dot.on('click', activeMark);     // Клик мышкой по метке
         };
 
         /**
@@ -235,12 +242,12 @@
 
             for (var i = 0; i < list.length; i++) {
                 var top = 0, left = 0;
-                option.newCords[i] = null;
+                option.coordinateList[i] = null;
 
-                if (option.cords[i].on_scheme) {
-                    var scheme = option.cords[i].on_scheme;
+                if (list[i].on_scheme) {
+                    var scheme = list[i].on_scheme;
 
-                    if (option.cords[i].not_active) continue;
+                    if (list[i].not_active) continue;
 
                     if (scheme == null) scheme = '';
                     // Если придёт что-то другое то мы его превратим в строчку
@@ -270,8 +277,7 @@
                         left: option.left,
                         coordinateY: option.coordinateY,
                         coordinateX: option.coordinateX,
-                        name: list[i].name && list[i].name.ru ? list[i].name.ru : '',
-                        not_active: list[i].not_active && list[i].not_active === true ? true : false
+                        name: list[i].name && list[i].name.ru ? list[i].name.ru : ''
                     };
                 }
             }
@@ -296,7 +302,7 @@
                 if (option.index == index) {
                     elem.inputCoordinateY.val(value.coordinateY);
                     elem.inputCoordinateX.val(value.coordinateX);
-                    if (!value.not_active) readOnly(false);
+                    readOnly(false);
                 } else {
                     dot.css('opacity', '0.6');
                 }
@@ -304,18 +310,19 @@
                 dot.on('click', cancelClick);     // Клик мышкой по метке
                 dot.on('click', 'i', removeMark); // Клик по елементу удаления метки
 
-                if (!value.not_active) elem.node.append(dot);
+                elem.node.append(dot);
 
                 // Записываем координаты
-                option.newCords[index] = value.coordinateY + ',' + value.coordinateX;
+                option.coordinateList[index] = [value.coordinateY, value.coordinateX];
             });
 
-            elem.node.click(createMark);  // Событие размещения метки по клику на картинке
-
             afterMethod();
+
+            // Событие размещения метки по клику на картинке
+            elem.node.click(createMark);
         };
 
-        // Метод ChangeAllCoordinates
+        // Метод changeAllCoordinates
         var changeAllCoordinates = function () {
             beforeMethod();
 
@@ -324,7 +331,7 @@
             // Перебираем все метки для их отрисовывания
             $.each(coordinates, function (index, value) {
                 var id = option.dotName + index;
-                var dot = markChange(id, option.index == index ? 'fa fa-street-view select' : 'fa fa-male', index, value.name);
+                var dot = markName(id, option.index == index ? 'fa fa-street-view select' : 'fa fa-male', index, value.name);
 
                 dot.css('top', value.top);
                 dot.css('left', value.left);
@@ -332,23 +339,22 @@
                 if (option.index == index) {
                     elem.inputCoordinateY.val(value.coordinateY);
                     elem.inputCoordinateX.val(value.coordinateX);
-                    if (!value.not_active) readOnly(false);
                 } else {
                     dot.css('opacity', '0.6');
                 }
 
                 dot.on('click', activeMark);       // Клик мышкой по метке
-                dot.on('click', 'i', cancelClick); // Клик по елементу удаления метки
 
-                if (!value.not_active) elem.node.append(dot);
+                elem.node.append(dot);
 
                 // Записываем координаты
-                option.newCords[index] = value.coordinateY + ',' + value.coordinateX;
+                option.coordinateList[index] = [value.coordinateY, value.coordinateX];
             });
 
-            elem.node.click(moveMark);  // Событие размещения метки по клику на картинке
-
             afterMethod();
+
+            // Событие размещения метки по клику на картинке
+            elem.node.click(moveMark);
         };
 
         var app = function () {
