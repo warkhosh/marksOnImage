@@ -13,7 +13,7 @@
             maxCoordinateY: 0,
             markWidth: 0,
             markHeight: 0,
-            modalWidth: 0,
+            //modalWidth: 0,
             coordinateX: null, // координаты для позиционирования метки
             coordinateY: null, // координаты для позиционирования метки
             left: null, // координаты для корретного размщения метки с учётом сдвига
@@ -118,6 +118,7 @@
         var moveMark = function (e) {
             if (option.readOnly) return false;
 
+            // Проверяем и сохраняем новые координаты
             coordinates(e.offsetY, e.offsetX);
 
             var dot = elem.node.find('.' + option.classIcon + '.select').css({'top': option.top, 'left': option.left});
@@ -125,19 +126,27 @@
             elem.inputCoordinateY.val(option.coordinateY);
             elem.inputCoordinateX.val(option.coordinateX);
 
-            // Сохраняем новые координаты
-            option.coordinateList[option.index] = [option.coordinateY, option.coordinateX];
-
             saveData();
 
             dot.on('click', activeMark);     // Клик мышкой по метке
         };
 
+        /**
+         * Удаление метки и стирание её координат из переменных
+         * @param {Event} e
+         * @returns {boolean}
+         */
         var removeMark = function (e) {
-            e.preventDefault();
             $(this).parent().remove();
+
             elem.inputCoordinateY.val(null);
             elem.inputCoordinateX.val(null);
+            option.coordinateList[option.index] = null;
+
+            clearCurrentCoordinate();
+            saveData();
+
+            e.preventDefault();
             return false;
         };
 
@@ -145,6 +154,17 @@
          * Триггер для смещения иконки по изменившимся координатам в input полях.
          */
         var changeCoordinate = function () {
+            var dot = elem.node.find('.' + option.classIcon + '.select');
+
+            // Стираем координаты и все значения если нет активной метки
+            if (dot.length == 0) {
+                console.log(dot.length);
+                clearCurrentCoordinate();
+                saveData();
+                return;
+            }
+
+            // Проверяем и сохраняем новые координаты
             coordinates(elem.inputCoordinateY.val(), elem.inputCoordinateX.val());
 
             // указываем новые координаты после всех проверок и коррекций
@@ -154,8 +174,6 @@
             // Меняем координаты метки
             elem.node.find('.' + option.classIcon + '.select').css({'top': option.top, 'left': option.left});
 
-            // Сохраняем новые координаты
-            option.coordinateList[option.index] = [option.coordinateY, option.coordinateX];
             saveData();
         };
 
@@ -165,7 +183,8 @@
          * @param {String|Number} y
          * @param {String|Number} x
          */
-        var coordinates = function (y, x) {
+        var coordinates = function (y, x, saveCoordinate) {
+            saveCoordinate = saveCoordinate || true;
             y = Number(y);
             x = Number(x);
 
@@ -176,22 +195,43 @@
             var mark2Height = (markHeight / 2);
 
             // Смещаем кординаты для установки метки по центру клика
-            var top = (y - mark2Height);
+            var top = (y - markHeight);
             var left = (x - mark2Width);
 
             // Проверки для предотвращения установки метки за пределами схемы
             if (top < 1) top = 0;
             if (left < 1) left = 0;
 
-            if ((y + mark2Height) > option.maxCoordinateY) top = (option.maxCoordinateY - markHeight);
+            if ((y + markHeight) > option.maxCoordinateY) top = (option.maxCoordinateY - markHeight);
             if ((x + mark2Width) > option.maxCoordinateX) left = (option.maxCoordinateX - markWidth);
 
             // записываем значения для использования в других местах
             option.top = top;
             option.left = left;
 
-            option.coordinateY = (top + mark2Height);
+            option.coordinateY = (top + markHeight);
             option.coordinateX = (left + mark2Width);
+
+            // Сохраняем новые координаты
+            if (saveCoordinate) {
+                option.coordinateList[option.index] = [option.coordinateY, option.coordinateX];
+            }
+        };
+
+        /**
+         * Обнуляет переменные текущих координат и стирает значение активной точки из списка координат
+         */
+        var clearCurrentCoordinate = function () {
+            option.top = null;
+            option.left = null;
+            option.coordinateY = null;
+            option.coordinateX = null;
+
+            // указываем новые координаты после всех проверок и коррекций
+            elem.inputCoordinateY.val(option.coordinateY);
+            elem.inputCoordinateX.val(option.coordinateX);
+
+            option.coordinateList[option.index] = null;
         };
 
         /**
@@ -201,6 +241,7 @@
         var createMark = function (e) {
             if (option.readOnly) return false;
 
+            // проверяем и сохраняем новые координаты
             coordinates(e.offsetY, e.offsetX);
 
             // Убираем (если есть) метку перед отрисовкой новой
@@ -213,29 +254,30 @@
             dot.attr('class', option.classIcon + ' ' + option.classNameIconHover + ' select');
 
             elem.node.append(dot);
-
             elem.inputCoordinateY.val(option.coordinateY);
             elem.inputCoordinateX.val(option.coordinateX);
 
             dot.on('click', cancelClick);     // Клик мышкой по метке
             dot.on('click', 'i', removeMark); // Клик по елементу удаления метки
+
+            saveData();
         };
 
         /**
          * Центрирование схемы в модальном окне
          */
-        var imageOffset = function () {
-            var position = elem.modal.find('.modal-body > div').position();
-            option.modalWidth = elem.modal.children().width();
-
-            // Центровка картинки в модальном окне:
-            if ((option.maxCoordinateX + (position.left * 2)) < option.modalWidth) {
-                var left = (((option.modalWidth - option.maxCoordinateX) + position.left) / 2);
-                elem.node.css('margin-left', left);
-            } else {
-                elem.node.removeAttr('style');
-            }
-        };
+        //var imageOffset = function () {
+        //    var position = elem.modal.find('.modal-body > div').position();
+        //    option.modalWidth = elem.modal.children().width();
+        //
+        //    // Центровка картинки в модальном окне:
+        //    if ((option.maxCoordinateX + (position.left * 2)) < option.modalWidth) {
+        //        var left = (((option.modalWidth - option.maxCoordinateX) + position.left) / 2);
+        //        elem.node.css('margin-left', left);
+        //    } else {
+        //        elem.node.removeAttr('style');
+        //    }
+        //};
 
         // Вызывается до запуска основного метода
         var beforeMethod = function () {
@@ -243,7 +285,7 @@
             option.maxCoordinateX = elem.image.width;
             option.maxCoordinateY = elem.image.height;
 
-            imageOffset();
+            //imageOffset();
 
             // показываем картинку и записываем ключь текущей метки
             elem.node.find('img').data('index', option.index);
@@ -254,7 +296,7 @@
         // Вызывается после запуска основного метода
         var afterMethod = function () {
             elem.node.css('visibility', 'visible');
-            $(window).resize(imageOffset); // Триггер на смещение картинки в модальном окне если она меньше его
+            //$(window).resize(imageOffset); // Триггер на смещение картинки в модальном окне если она меньше его
         };
 
         /**
@@ -294,7 +336,7 @@
                         left = isNaN(x) ? 0 : x;
                     }
 
-                    coordinates(top, left);
+                    coordinates(top, left, false);
 
                     data[i] = {
                         top: option.top,
@@ -362,8 +404,8 @@
             $.each(coordinates, function (index, value) {
                 var id = option.classIcon + index;
                 var dot = markName(id, (option.index == index
-                    ?  option.classIcon + ' ' + option.classNameIconHover + ' select'
-                    :  option.classIcon + ' ' + option.classNameIcon), index, value.name);
+                    ? option.classIcon + ' ' + option.classNameIconHover + ' select'
+                    : option.classIcon + ' ' + option.classNameIcon), index, value.name);
 
                 dot.css('top', value.top);
                 dot.css('left', value.left);
