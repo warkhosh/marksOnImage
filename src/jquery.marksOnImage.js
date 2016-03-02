@@ -6,6 +6,7 @@
             index: null,
             method: 'edit',
             dotName: 'dot',
+            selectScheme: '.scheme',
             readOnly: true,
             idCoordinateX: null,
             idCoordinateY: null,
@@ -33,6 +34,10 @@
             option.readOnly = value;
             elem.inputCoordinateY.prop("readonly", value);
             elem.inputCoordinateX.prop("readonly", value);
+        };
+
+        var saveData = function () {
+            elem.img.data({coordinates: option.coordinateList, index:option.index, method: option.method});
         };
 
         /**
@@ -65,7 +70,7 @@
          */
         var markName = function (id, className, index, text) {
             var elem = mark(id, className, index);
-            elem.find('i').replaceWith('<b>'+text+'</b>');
+            elem.find('i').replaceWith('<b>' + text + '</b>');
             return elem;
         };
 
@@ -93,6 +98,7 @@
 
             elem.inputCoordinateY.val(option.coordinateList[option.index][0]);
             elem.inputCoordinateX.val(option.coordinateList[option.index][1]);
+            saveData();
 
             e.preventDefault();
             return false;
@@ -121,6 +127,7 @@
 
             // Сохраняем новые координаты
             option.coordinateList[option.index] = [option.coordinateY, option.coordinateX];
+            saveData();
         };
 
         /**
@@ -280,6 +287,8 @@
                         name: list[i].name && list[i].name.ru ? list[i].name.ru : ''
                     };
                 }
+
+                saveData();
             }
 
             return data;
@@ -314,6 +323,7 @@
 
                 // Записываем координаты
                 option.coordinateList[index] = [value.coordinateY, value.coordinateX];
+                saveData();
             });
 
             afterMethod();
@@ -349,6 +359,7 @@
 
                 // Записываем координаты
                 option.coordinateList[index] = [value.coordinateY, value.coordinateX];
+                saveData();
             });
 
             afterMethod();
@@ -360,6 +371,7 @@
         var app = function () {
             elem.node = $('#schemeMap');
             elem.modal = $('#schemeModal');
+            elem.img = elem.node.find(option.selectScheme);
             elem.inputCoordinateY = $(option.idCoordinateY);
             elem.inputCoordinateX = $(option.idCoordinateX);
 
